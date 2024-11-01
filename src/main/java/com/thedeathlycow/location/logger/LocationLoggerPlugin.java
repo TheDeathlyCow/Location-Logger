@@ -2,9 +2,8 @@ package com.thedeathlycow.location.logger;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitScheduler;
 
-public final class LocationLogger extends JavaPlugin {
+public final class LocationLoggerPlugin extends JavaPlugin {
 
     private final LocationDatabase database = new LocationDatabase();
 
