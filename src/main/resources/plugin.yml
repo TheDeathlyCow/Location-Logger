@@ -1,4 +1,4 @@
 name: Location-Logger
 version: '1.0-SNAPSHOT'
-main: com.thedeathlycow.location.logger.LocationLogger
+main: com.thedeathlycow.location.logger.LocationLoggerPlugin
 api-version: '1.21'
