@@ -7,20 +7,26 @@ public final class LocationLoggerPlugin extends JavaPlugin {
 
     private final LocationDatabase database = new LocationDatabase();
 
-    private BukkitRunnable updateListener;
-
-    private static final long SECONDS_PER_LOG = 5L;
-
     @Override
     public void onEnable() {
-        database.open();
+        this.saveDefaultConfig();
+        database.open(this.getJdbcUrl());
 
-        updateListener = new LogRunner(this.database);
-        updateListener.runTaskTimer(this, SECONDS_PER_LOG * 20L, SECONDS_PER_LOG * 20L);
+        BukkitRunnable updateListener = new LogRunner(this.database);
+        long intervalTicks = this.getLogIntervalTicks();
+        updateListener.runTaskTimer(this, intervalTicks, intervalTicks);
     }
 
     @Override
     public void onDisable() {
         database.close();
+    }
+
+    public String getJdbcUrl() {
+        return "jdbc:sqlite:" + this.getConfig().getString("database-path");
+    }
+
+    public long getLogIntervalTicks() {
+        return this.getConfig().getLong("log-interval-seconds") * 20L;
     }
 }

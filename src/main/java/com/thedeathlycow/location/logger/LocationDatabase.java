@@ -16,6 +16,8 @@ public class LocationDatabase implements AutoCloseable {
 
     private ExecutorService executor;
 
+    private String jdbcUrl;
+
     private static final Logger LOGGER = Bukkit.getLogger();
 
     private static final String JDBC_URL = "jdbc:sqlite:locations.db";
@@ -32,9 +34,10 @@ public class LocationDatabase implements AutoCloseable {
             """;
 
 
-    public void open() {
-        executor = Executors.newVirtualThreadPerTaskExecutor();
-        try (Connection connection = DriverManager.getConnection(JDBC_URL)) {
+    public void open(String jdbcUrl) {
+        this.jdbcUrl = jdbcUrl;
+        this.executor = Executors.newVirtualThreadPerTaskExecutor();
+        try (Connection connection = DriverManager.getConnection(jdbcUrl)) {
             this.initSchema(connection);
         } catch (SQLException e) {
             LOGGER.severe(() -> "Unable to open database: " + e);
@@ -50,7 +53,7 @@ public class LocationDatabase implements AutoCloseable {
         String worldName = world == null ? "null" : world.getName();
         Vector3i pos = new Vector3i(location.getBlockX(), location.getBlockY(), location.getBlockZ());
 
-        this.executor.submit(() -> logValues(playerName, worldName, pos, time));
+        this.executor.submit(() -> this.logValues(playerName, worldName, pos, time));
     }
 
     @Override
@@ -58,8 +61,8 @@ public class LocationDatabase implements AutoCloseable {
         this.executor.close();
     }
 
-    private static void logValues(String playerName, String worldName, Vector3i position, long timeSeconds) {
-        try (Connection connection = DriverManager.getConnection(JDBC_URL)) {
+    private void logValues(String playerName, String worldName, Vector3i position, long timeSeconds) {
+        try (Connection connection = DriverManager.getConnection(this.getJdbcUrl())) {
             connection.setAutoCommit(false);
             insertValuesWithConnection(playerName, worldName, position, timeSeconds, connection);
         } catch (SQLException e) {
@@ -132,5 +135,9 @@ public class LocationDatabase implements AutoCloseable {
                             """
             );
         }
+    }
+
+    private String getJdbcUrl() {
+        return jdbcUrl != null ? jdbcUrl : JDBC_URL;
     }
 }

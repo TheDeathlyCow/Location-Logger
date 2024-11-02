@@ -1,0 +1,2 @@
+database-path: player_locations.db
+log-interval-seconds: 5
