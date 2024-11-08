@@ -23,7 +23,7 @@ public class LocationDatabase implements AutoCloseable {
 
     private static final String JDBC_URL = "jdbc:sqlite:locations.db";
 
-    private static final String INSERT_PLAYER_SQL = "INSERT OR REPLACE INTO players (player_name, uuid) VALUES (?, ?);";
+    private static final String INSERT_PLAYER_SQL = "INSERT OR IGNORE INTO players (player_name, uuid) VALUES (?, ?);";
     private static final String INSERT_WORLD_SQL = "INSERT OR IGNORE INTO worlds (resource_id) VALUES (?);";
     private static final String INSERT_LOCATION_SQL = """
             INSERT INTO locations (player, world, x, y, z, time_seconds)
