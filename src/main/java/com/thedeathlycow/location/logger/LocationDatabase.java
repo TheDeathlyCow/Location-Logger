@@ -28,7 +28,7 @@ public class LocationDatabase implements AutoCloseable {
     private static final String INSERT_LOCATION_SQL = """
             INSERT INTO locations (player, world, x, y, z, time_seconds)
             VALUES (
-                (SELECT id from players WHERE player_name = ?),
+                (SELECT id from players WHERE uuid = ?),
                 (SELECT id from worlds WHERE resource_id = ?),
                 ?, ?, ?, ?
             );
@@ -63,10 +63,10 @@ public class LocationDatabase implements AutoCloseable {
         this.executor.close();
     }
 
-    private void logValues(String playerName, UUID playerUuuid, String worldName, Vector3i position, long timeSeconds) {
+    private void logValues(String playerName, UUID playerUuid, String worldName, Vector3i position, long timeSeconds) {
         try (Connection connection = DriverManager.getConnection(this.getJdbcUrl())) {
             connection.setAutoCommit(false);
-            insertValuesWithConnection(playerName, playerUuuid, worldName, position, timeSeconds, connection);
+            insertValuesWithConnection(playerName, playerUuid, worldName, position, timeSeconds, connection);
         } catch (SQLException e) {
             LOGGER.severe(() -> "Failed to connect to database: " + e);
         }
@@ -74,7 +74,7 @@ public class LocationDatabase implements AutoCloseable {
 
     private static void insertValuesWithConnection(
             String playerName,
-            UUID playerUuuid,
+            UUID playerUuid,
             String worldName,
             Vector3i position,
             long timeSeconds,
@@ -86,13 +86,13 @@ public class LocationDatabase implements AutoCloseable {
                 PreparedStatement insertLocation = connection.prepareStatement(INSERT_LOCATION_SQL)
         ) {
             insertPlayer.setString(1, playerName);
-            insertPlayer.setString(2, playerUuuid.toString());
+            insertPlayer.setString(2, playerUuid.toString());
             insertPlayer.executeUpdate();
 
             insertWorld.setString(1, worldName);
             insertWorld.executeUpdate();
 
-            insertLocation.setString(1, playerName);
+            insertLocation.setString(1, playerUuid.toString());
             insertLocation.setString(2, worldName);
             insertLocation.setInt(3, position.x);
             insertLocation.setInt(4, position.y);
