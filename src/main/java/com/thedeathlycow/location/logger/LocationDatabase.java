@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.joml.Vector3i;
 
 import java.sql.*;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -22,7 +23,7 @@ public class LocationDatabase implements AutoCloseable {
 
     private static final String JDBC_URL = "jdbc:sqlite:locations.db";
 
-    private static final String INSERT_PLAYER_SQL = "INSERT OR IGNORE INTO players (player_name) VALUES (?);";
+    private static final String INSERT_PLAYER_SQL = "INSERT OR REPLACE INTO players (player_name, uuid) VALUES (?, ?);";
     private static final String INSERT_WORLD_SQL = "INSERT OR IGNORE INTO worlds (resource_id) VALUES (?);";
     private static final String INSERT_LOCATION_SQL = """
             INSERT INTO locations (player, world, x, y, z, time_seconds)
@@ -46,6 +47,7 @@ public class LocationDatabase implements AutoCloseable {
 
     public void logPlayerLocation(Player player, long time) {
         String playerName = player.getName();
+        UUID playerUuid = player.getUniqueId();
 
         Location location = player.getLocation();
         World world = location.getWorld();
@@ -53,7 +55,7 @@ public class LocationDatabase implements AutoCloseable {
         String worldName = world == null ? "null" : world.getName();
         Vector3i pos = new Vector3i(location.getBlockX(), location.getBlockY(), location.getBlockZ());
 
-        this.executor.submit(() -> this.logValues(playerName, worldName, pos, time));
+        this.executor.submit(() -> this.logValues(playerName, playerUuid, worldName, pos, time));
     }
 
     @Override
@@ -61,10 +63,10 @@ public class LocationDatabase implements AutoCloseable {
         this.executor.close();
     }
 
-    private void logValues(String playerName, String worldName, Vector3i position, long timeSeconds) {
+    private void logValues(String playerName, UUID playerUuuid, String worldName, Vector3i position, long timeSeconds) {
         try (Connection connection = DriverManager.getConnection(this.getJdbcUrl())) {
             connection.setAutoCommit(false);
-            insertValuesWithConnection(playerName, worldName, position, timeSeconds, connection);
+            insertValuesWithConnection(playerName, playerUuuid, worldName, position, timeSeconds, connection);
         } catch (SQLException e) {
             LOGGER.severe(() -> "Failed to connect to database: " + e);
         }
@@ -72,6 +74,7 @@ public class LocationDatabase implements AutoCloseable {
 
     private static void insertValuesWithConnection(
             String playerName,
+            UUID playerUuuid,
             String worldName,
             Vector3i position,
             long timeSeconds,
@@ -83,6 +86,7 @@ public class LocationDatabase implements AutoCloseable {
                 PreparedStatement insertLocation = connection.prepareStatement(INSERT_LOCATION_SQL)
         ) {
             insertPlayer.setString(1, playerName);
+            insertPlayer.setString(2, playerUuuid.toString());
             insertPlayer.executeUpdate();
 
             insertWorld.setString(1, worldName);
@@ -110,7 +114,7 @@ public class LocationDatabase implements AutoCloseable {
                     """
                             CREATE TABLE IF NOT EXISTS worlds (
                                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                    resource_id VARCHAR(500) UNIQUE
+                                    resource_id TEXT UNIQUE
                             )
                             """
             );
@@ -118,7 +122,8 @@ public class LocationDatabase implements AutoCloseable {
                     """
                             CREATE TABLE IF NOT EXISTS players (
                                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                    player_name VARCHAR(500) UNIQUE
+                                    player_name TEXT,
+                                    uuid TEXT UNIQUE
                             );
                             """
             );
